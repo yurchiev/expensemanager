@@ -1,80 +1,66 @@
+require 'json'
+require 'yaml'
+
 class ExpensesController < ApplicationController
-  # Вивести всі витрати
+  FILE_JSON = 'storage/expenses.json'
+  FILE_YAML = 'storage/expenses.yaml'
+
   def index
-    @expenses = Expense.all
-    @expense = Expense.new  # Для форми додавання нової витрати
+    @expenses = Expense.all.order(created_at: :desc)
   end
 
-  # Додати нову витрату
   def create
     @expense = Expense.new(expense_params)
-    if @expense.save
-      redirect_to root_path, notice: 'Витрату успішно додано.'
-    else
-      @expenses = Expense.all
-      render :index
-    end
+    redirect_to root_path
   end
 
-  # Оновити витрату
   def update
     @expense = Expense.find(params[:id])
-    if @expense.update(expense_params)
-      redirect_to root_path, notice: 'Витрату успішно оновлено.'
-    else
-      render :index
-    end
+    redirect_to root_path
   end
 
-  # Видалити витрату
   def destroy
     @expense = Expense.find(params[:id])
-    @expense.destroy
-    redirect_to root_path, notice: 'Витрату успішно видалено.'
+    redirect_to root_path
   end
 
-  # Пошук витрат
-  def search
-    @expenses = Expense.where("name LIKE ?", "%#{params[:term]}%")
-    render :index
-  end
-
-  # Зберегти витрати в JSON
   def save_json
-    expenses = Expense.all
-    File.open("expenses.json", "w") { |f| f.write(expenses.to_json) }
-    redirect_to root_path, notice: 'Витрати збережено у JSON.'
+    expenses = Expense.all.map(&:attributes)
+    File.write(FILE_JSON, JSON.pretty_generate(expenses))
+    redirect_to root_path
   end
 
-  # Завантажити витрати з JSON
-  def load_json
-    expenses_data = JSON.parse(File.read("expenses.json"))
-    expenses_data.each do |expense|
-      Expense.create(expense)
-    end
-    redirect_to root_path, notice: 'Витрати завантажено з JSON.'
-  end
-
-  # Зберегти витрати в YAML
   def save_yaml
-    expenses = Expense.all
-    File.open("expenses.yaml", "w") { |f| f.write(expenses.to_yaml) }
-    redirect_to root_path, notice: 'Витрати збережено у YAML.'
+    expenses = Expense.all.map(&:attributes)
+    File.write(FILE_YAML, expenses.to_yaml)
+    redirect_to root_path
   end
 
-  # Завантажити витрати з YAML
-  def load_yaml
-    expenses_data = YAML.load_file("expenses.yaml")
-    expenses_data.each do |expense|
-      Expense.create(expense)
+  def load_json
+    if File.exist?(FILE_JSON)
+      data = JSON.parse(File.read(FILE_JSON))
+      Expense.destroy_all
+      data.each do |attrs|
+        Expense.create(attrs.except("id", "created_at", "updated_at"))
+      end
     end
-    redirect_to root_path, notice: 'Витрати завантажено з YAML.'
+    redirect_to root_path
+  end
+
+  def load_yaml
+    if File.exist?(FILE_YAML)
+      data = YAML.load_file(FILE_YAML)
+      Expense.destroy_all
+      data.each do |attrs|
+        Expense.create(attrs.except("id", "created_at", "updated_at"))
+      end
+    end
+    redirect_to root_path
   end
 
   private
 
-  # Параметри витрати для безпеки
   def expense_params
-    params.require(:expense).permit(:name, :amount, :date, :description)
+    params.permit(:name, :amount, :date, :description)
   end
 end

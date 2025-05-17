@@ -1,45 +1,55 @@
-<h1>Expenses</h1>
+<h1>Облік витрат</h1>
 
-<h2>Додати / Редагувати витрату</h2>
-<%= form_with url: '/expenses/add', method: :post do %>
-  Назва витрати: <%= text_field_tag :name %>
-  Сума: <%= text_field_tag :amount %>
-  Дата: <%= date_select :expense, :date %>
-  Опис: <%= text_area_tag :description %>
-  <%= submit_tag "Додати" %>
+<%= form_with(url: "/expenses/add", local: true) do |f| %>
+  <div>
+    <%= label_tag :name, "Назва витрати" %><br>
+    <%= text_field_tag :name, nil, required: true %>
+  </div>
+
+  <div>
+    <%= label_tag :amount, "Сума (грн)" %><br>
+    <%= number_field_tag :amount, nil, step: 0.01, required: true %>
+  </div>
+
+  <div>
+    <%= label_tag :date, "Дата витрати" %><br>
+    <%= date_field_tag :date, Date.today, required: true %>
+  </div>
+
+  <div>
+    <%= label_tag :description, "Опис (необов’язково)" %><br>
+    <%= text_area_tag :description, nil, rows: 3 %>
+  </div>
+
+  <div>
+    <%= submit_tag "Додати витрату" %>
+  </div>
 <% end %>
 
-<h2>Пошук</h2>
-<%= form_with url: '/expenses/search', method: :get do %>
-  <%= text_field_tag :term %>
-  <%= submit_tag "Шукати" %>
+<hr>
+
+<h2>Список витрат</h2>
+
+<% if @expenses.any? %>
+  <ul>
+    <% @expenses.each do |expense| %>
+      <li>
+        <strong><%= expense.name %></strong> —
+        <%= number_to_currency(expense.amount, unit: "₴") %> |
+        <%= expense.date.strftime("%d.%m.%Y") %>
+        <% if expense.description.present? %>
+          — <em><%= expense.description %></em>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>Немає доданих витрат.</p>
 <% end %>
 
-<h2>Витрати</h2>
-<ul>
-  <% @expenses.each do |expense| %>
-    <li>
-      <strong><%= expense.name %></strong>: <%= expense.amount %> грн, Дата: <%= expense.date %>, Опис: <%= expense.description %>
+<hr>
 
-      <%= form_with url: '/expenses/edit', method: :post do %>
-        <%= hidden_field_tag :id, expense.id %>
-        Назва витрати: <%= text_field_tag :name, expense.name %>
-        Сума: <%= text_field_tag :amount, expense.amount %>
-        Дата: <%= date_select :expense, :date, default: expense.date %>
-        Опис: <%= text_area_tag :description, expense.description %>
-        <%= submit_tag "Редагувати" %>
-      <% end %>
+<h2>Зберегти список витрат</h2>
 
-      <%= form_with url: '/expenses/delete', method: :post do %>
-        <%= hidden_field_tag :id, expense.id %>
-        <%= submit_tag "Видалити" %>
-      <% end %>
-    </li>
-  <% end %>
-</ul>
-
-<h2>Файл</h2>
-<%= link_to "Зберегти в JSON", '/expenses/save-json' %> |
-<%= link_to "Зберегти в YAML", '/expenses/save-yaml' %> |
-<%= link_to "Завантажити з JSON", '/expenses/load-json' %> |
-<%= link_to "Завантажити з YAML", '/expenses/load-yaml' %>
+<%= button_to "Зберегти у JSON", "/expenses/save-json", method: :get %>
+<%= button_to "Зберегти у YAML", "/expenses/save-yaml", method: :get %>
